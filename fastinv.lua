@@ -11,11 +11,13 @@ end
 
 function fastinv.new(name,structure)
 	local o = fastinv.newSlotFolder(name)
-	for i,v in ipairs(structure) do
-		if type(v) == 'table' then 
-			o:addSlot(fastinv.new(name.." next",v))
-		else
-			o:addSlot(fastinv.newSlot(v))
+	if structure then
+		for i,v in ipairs(structure) do
+			if type(v) == 'table' then 
+				o:addSlot(fastinv.new(name.." next",v))
+			else
+				o:addSlot(fastinv.newSlot(v))
+			end
 		end
 	end
 	return o
@@ -32,6 +34,8 @@ function fastinv.newSlotFolder(name)
 	o.addSlot = fastinv.addSlot
 	o.draw = fastinv.draw
 	o.toggle = fastinv.toggle
+	o.autoStow = fastinv.autoStow
+	o.autoEquip = fastinv.autoEquip
 	return o
 end
 
@@ -73,12 +77,12 @@ function fastinv.newContainerItem(name,types,slots,stores)
 	elseif type(slots) == "number" then
 		o.slots = {}
 		for i=1,slots do
-			addSlot(o,newSlot(name.." slot",true,stores))
+			fastinv.addSlot(o,fastinv.newSlot(name.." slot",stores,true))
 		end
 	else
 		o.slots = {}
 		for i=1,3 do
-			addSlot(o,newSlot(name.." slot",true,{"anysize","anytype"}))
+			fastinv.addSlot(o,fastinv.newSlot(name.." slot",{"anysize","anytype"},true))
 		end
 	end
 	o.draw = fastinv.draw
@@ -139,37 +143,40 @@ end
 
 --compares an item and a slot and returns if it can fit
 function fastinv.checkFits(slot,item)
-	--check size first and only continue if size fits
-	local slotSize = fastinv.getFromList(slot.stores,fastinv.sizes)[1]
-	local itemSize = fastinv.getFromList(item.types,fastinv.sizes)[1]
-	if slotSize == "anysize" then 
-		--everything is ok
-		print(slot.name.." slotsize was anySize "..slotSize)
-	elseif slotSize == itemSize then
-		--everything is ok
-		print(item.name.." itemsize "..itemSize.." "..slot.name.." slotsize "..slotSize)
-	else
-		--print( ("slot and item were different",slotSize,itemSize)
-	
-		return false, item.name.."("..itemSize..") doesnt fit "..slot.name.."("..slotSize..")"
+	if item then
+		--check size first and only continue if size fits
+		local slotSize = fastinv.getFromList(slot.stores,fastinv.sizes)[1]
+		local itemSize = fastinv.getFromList(item.types,fastinv.sizes)[1]
+		if slotSize == "anysize" then 
+			--everything is ok
+			--print(slot.name.." slotsize was anySize "..slotSize)
+		elseif slotSize == itemSize then
+			--everything is ok
+			--print(item.name.." itemsize "..itemSize.." "..slot.name.." slotsize "..slotSize)
+		else
+			--print( ("slot and item were different",slotSize,itemSize)
+		
+			return false, item.name.."("..itemSize..") doesnt fit "..slot.name.."("..slotSize..")"
+		end
+		--check item types to make sure all of them fit
+		local slotTypes = fastinv.getFromList(slot.stores,fastinv.itemtypes)
+		local itemTypes = fastinv.getFromList(item.types,fastinv.itemtypes)
+		--print(slotTypes[1],slot.name)
+		if #slotTypes == 1 and slotTypes[1] == "anytype" then
+			--print(slot.name.." can fit "..slotTypes[1])
+			return true, slot.name.." slottype is anytype "..slotTypes[1]
+		else
+			--print("comparing slot and item types")
+			return fastinv.checkAllAreIn(slotTypes,itemTypes), "all item types were contained in slottypes"	
+		end
+		--print(item.name.." itemtype "..itemTypes[1].." "..slot.name.." slotTypes "..slotTypes[1])
+		return false, "failed during type comparison"
 	end
-	--check item types to make sure all of them fit
-	local slotTypes = fastinv.getFromList(slot.stores,fastinv.itemtypes)
-	local itemTypes = fastinv.getFromList(item.types,fastinv.itemtypes)
-	--print(slotTypes[1],slot.name)
-	if #slotTypes == 1 and slotTypes[1] == "anytype" then
-		--print(slot.name.." can fit "..slotTypes[1])
-		return true, slot.name.." slottype is anytype "..slotTypes[1]
-	else
-		print("comparing slot and item types")
-		return checkAllAreIn(slotTypes,itemTypes), "all item types were contained in slottypes"	
-	end
-	print(item.name.." itemtype "..itemTypes[1].." "..slot.name.." slotTypes "..slotTypes[1])
-	return false, "failed during type comparison"
+	return false, "no item given"
 end
 
 --LOGIC: used for checkFits()
-local function checkAllAreIn(full,sample)
+function fastinv.checkAllAreIn(full,sample)
 	local allExist = true
 	for i,v in ipairs(sample) do
 		local thisOneExists = false
@@ -212,53 +219,57 @@ end
 
 --searchs an inventory and adds item to an autostow slot, returns the item if it did not fit
 function fastinv.autoStow(self,item)
-	--create complete slotlist that can hold this item
-	local slotList = fastinv.listSlots(player)
-	--print("slotlist was "..#slotList.." long")
-	local holdableList = {}
-	for i,slot in ipairs(slotList) do
-		if fastinv.checkFits(slot,item) and slot.autostow then
-			table.insert(holdableList,slot)
+	if item then
+		--create complete slotlist that can hold this item
+		local slotList = fastinv.listSlots(player)
+		--print("slotlist was "..#slotList.." long")
+		local holdableList = {}
+		for i,slot in ipairs(slotList) do
+			if fastinv.checkFits(slot,item) and slot.autostow and (slot.item == nil or force) then
+				table.insert(holdableList,slot)
+			end
+		end
+		--print("holdablelist was "..#holdableList.." long")
+		
+		--put it in the slot or return false
+		if #holdableList > 0 then 
+			local r = math.random(1,#holdableList)
+			local targetSlot = holdableList[r]
+			local remain = targetSlot:addItem(item,force)
+			return remain
+		else
+			return item
 		end
 	end
-	--print("holdablelist was "..#holdableList.." long")
-	
-	--put it in the slot or return false
-	if #holdableList > 0 then 
-		local r = math.random(1,#holdableList)
-		local targetSlot = holdableList[r]
-		local remain = targetSlot:addItem(item)
-		return remain
-	else
-		return item
-	end
-	
+	return nil
 		
 end
 
 --searches and inventory and adds item to an autoequip slot, returns the item if it did not fit
 function fastinv.autoEquip(self,item)
-	--create complete slotlist that can hold this item
-	local slotList = fastinv.listSlots(player)
-	--print("slotlist was "..#slotList.." long")
-	local holdableList = {}
-	for i,slot in ipairs(slotList) do
-		if fastinv.checkFits(slot,item) and slot.equiptarget then
-			table.insert(holdableList,slot)
+	if item then
+		--create complete slotlist that can hold this item
+		local slotList = fastinv.listSlots(player)
+		--print("slotlist was "..#slotList.." long")
+		local holdableList = {}
+		for i,slot in ipairs(slotList) do
+			if fastinv.checkFits(slot,item) and slot.equiptarget and (slot.item == nil or force) then
+				table.insert(holdableList,slot)
+			end
+		end
+		print("holdablelist was "..#holdableList.." long")
+		
+		--put it in the slot or return false
+		if #holdableList > 0 then 
+			local r = math.random(1,#holdableList)
+			local targetSlot = holdableList[r]
+			local remain = targetSlot:addItem(item,force)
+			return remain
+		else
+			return item
 		end
 	end
-	--print("holdablelist was "..#holdableList.." long")
-	
-	--put it in the slot or return false
-	if #holdableList > 0 then 
-		local r = math.random(1,#holdableList)
-		local targetSlot = holdableList[r]
-		local remain = targetSlot:addItem(item)
-		return remain
-	else
-		return item
-	end
-			
+	return nil	
 end
 
 --get all slots of an inventory
@@ -266,7 +277,7 @@ function fastinv.listSlots(thing)
 	local slotList = {}
 	if thing.type == "slot" and thing.visible == true then 
 		if thing.item and thing.item.type == "container" then
-			local newSlots = listSlots(thing.item)
+			local newSlots = fastinv.listSlots(thing.item)
 			for j,k in ipairs(newSlots) do
 				table.insert(slotList,k)
 			end
@@ -275,14 +286,14 @@ function fastinv.listSlots(thing)
 		end
 	elseif thing.type == "folder" then 
 		for i,v in ipairs(thing.slots) do
-			local newSlots = listSlots(v)
+			local newSlots = fastinv.listSlots(v)
 			for j,k in ipairs(newSlots) do
 				table.insert(slotList,k)
 			end
 		end
 	elseif thing.type == "container" then 
 		for i,v in ipairs(thing.slots) do
-			local newSlots = listSlots(v)
+			local newSlots = fastinv.listSlots(v)
 			for j,k in ipairs(newSlots) do
 				table.insert(slotList,k)
 			end
@@ -311,8 +322,8 @@ function fastinv.swapLocations(slot1,slot2)
 	--else return false
 	if slot1.item and slot2.item then
 		
-		local fits1 = checkFits(slot1,slot2.item)
-		local fits2 = checkFits(slot2,slot1.item)
+		local fits1 = fastinv.checkFits(slot1,slot2.item)
+		local fits2 = fastinv.checkFits(slot2,slot1.item)
 		if fits1 and fits2 then
 			local taken1 = slot1:takeItem()
 			local taken2 = slot2:takeItem()
