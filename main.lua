@@ -1,4 +1,5 @@
 inv = require 'fastinv' 
+ss = require 'ssItem'
 
 local lg = love.graphics
 local font = love.graphics.newFont(30)
@@ -6,7 +7,7 @@ local fontsml = love.graphics.newFont(15)
 love.graphics.setFont(font)
 
 local as = {}
---as.map = lg.newImage('/assets/bgmap.png')
+as.map = lg.newImage('/assets/bgmap.png')
 as.emptyslot = lg.newImage('/assets/empty.png')
 as.lhand = lg.newImage('/assets/lhand.png')
 as.lhandact = lg.newImage('/assets/lhand_act.png')
@@ -88,6 +89,11 @@ defaultUse = {0,0,0,0}
 
 function love.load()
 	love.graphics.setDefaultFilter("nearest","nearest")
+	local modes = love.window.getFullscreenModes()
+	love.window.setMode(modes[#modes].width,modes[#modes].height,{fullscreen=true,fullscreentype="desktop"})
+	
+	menulevel = 0
+	
 	inv.init(types,sizes)
 	
 	player = inv.new("Player")
@@ -96,71 +102,51 @@ function love.load()
 	simple.img = as.glasses
 	complex = player:addSlot(inv.newSlotFolder("Worn:Complex"))
 	complex.img = as.suit
-	body = player:addSlot(inv.newSlot("Body",{"clothing","anysize"},false,true,1))
-	body.img = as.uniform
-	pack = player:addSlot(inv.newSlot("Back",{"large","backpack","satchel","jetpack","canister","tool","slingable"},true,true))
-	pack.img = as.suitstore
-	rucksack = inv.newContainerItem("Rucksack",{"backpack","large"},5,{"anytype","small"})
-	rucksack.img = as.backpack
+	body = player:addSlot(ss.newSlot("Body",{"clothing","anysize"},false,true,1,as.uniform,false))
+	pack = player:addSlot(ss.newSlot("Back",{"large","backpack","satchel","jetpack","canister","tool","slingable"},true,true,as.suitstore,false))
+	rucksack = ss.newContainerItem("Rucksack",{"backpack","large"},5,{"anytype","small"},as.backpack)
 	pack:addItem(rucksack)
 	
-	head = simple:addSlot(inv.newSlot("Head",{"helmet","hat","anysize"},false,true))
-	head.img = as.head
-	eyes = simple:addSlot(inv.newSlot("Eyes",{"glasses","visor","anysize"},false,true))
-	eyes.img = as.glasses
-	hands = simple:addSlot(inv.newSlot("Hands",{"gloves","anysize"},false,true))
-	hands.img = as.gloves
-	ears = simple:addSlot(inv.newSlot("Ears",{"earpiece","anysize"},false,true))
-	ears.img = as.ears
+	head = simple:addSlot(ss.newSlot("Head",{"helmet","hat","anysize"},false,true,0,as.head,true))
+	eyes = simple:addSlot(ss.newSlot("Eyes",{"glasses","visor","anysize"},false,true,0,as.glasses,true))
+	hands = simple:addSlot(ss.newSlot("Hands",{"gloves","anysize"},false,true,0,as.gloves,false))
+	ears = simple:addSlot(ss.newSlot("Ears",{"earpiece","anysize"},false,true,0,as.ears,true))
 	
-	bodyexo = complex:addSlot(inv.newSlot("Body external",{"armor","jacket","anysize","canister","slingable"},false,true))
-	bodyexo.img = as.suit
-	shoes = complex:addSlot(inv.newSlot("Feet",{"shoes","boots","anysize"},false,true))
-	shoes.img = as.shoes
-	mask = complex:addSlot(inv.newSlot("Face",{"mask","anysize"},false,true))
-	mask.img = as.mask
+	bodyexo = complex:addSlot(ss.newSlot("Body external",{"armor","jacket","anysize","canister","slingable"},false,true,0,as.suit,false))
+	shoes = complex:addSlot(ss.newSlot("Feet",{"shoes","boots","anysize"},false,true,0,as.shoes,true))
+	mask = complex:addSlot(ss.newSlot("Face",{"mask","anysize"},false,true,0,as.mask,true))
 	
 	hands = inv.new("Hands")
-	left = hands:addSlot(inv.newSlot("Left Hand",{"anytype","anysize"},false))
-	left.img = as.lhand
-	right = hands:addSlot(inv.newSlot("Right Hand",{"anytype","anysize"},false))
-	right.img = as.rhand
+	left = hands:addSlot(ss.newSlot("Left Hand",{"anytype","anysize"},false,0,as.lhand,false))
+	right = hands:addSlot(ss.newSlot("Right Hand",{"anytype","anysize"},false,0,as.rhand,false))
 		
 	selected = player
 	curHand = left
 	
-	outfit = inv.newContainerItem("Uniform",{"clothing","large"},
+	outfit = ss.newContainerItem("Uniform",{"clothing","large"},
 		{
-			inv.newSlot("Belt",{"belt","large"},true,true),
-			inv.newSlot("Pocket",{"anytype","small"},true),
-			inv.newSlot("Pocket",{"anytype","small"},true),
-			inv.newSlot("PDA Clip",{"pda","card","small"},true,true,2),
-			inv.newSlot("ID Clip",{"pda","card","small"},true,true,2)
-			}
+			ss.newSlot("Belt",{"belt","large"},true,true,0,as.belt,true),
+			ss.newSlot("Pocket",{"anytype","small"},true,false,0,as.pocket,true),
+			ss.newSlot("Pocket",{"anytype","small"},true,false,0,as.pocket,true),
+			ss.newSlot("PDA Clip",{"pda","card","small"},true,true,2,as.id,true),
+			ss.newSlot("ID Clip",{"pda","card","small"},true,true,2,as.id,true)
+			},
+		0,as.outfit
 	)
-	outfit.img = as.outfit
-	outfit.slots[1].img = as.belt
-	outfit.slots[2].img = as.pocket
-	outfit.slots[3].img = as.pocket
-	outfit.slots[4].img = as.id
-	outfit.slots[5].img = as.id
 	
-	idcard = inv.newItem("Scientist ID Card",{"card","small"})
-	idcard.img = as.card
-	pda = inv.newItem("Science PDA",{"pda","small"})
-	pda.img = as.pda
-	pen = inv.newItem("Pen",{"tool","small"})
-	pen.img = as.pen
-	lighter = inv.newItem("Lighter",{"tool","small"})
-	lighter.img = as.lighter
+	idcard = ss.newItem("Scientist ID Card",{"card","small"},as.card)
+	pda = ss.newItem("Science PDA",{"pda","small"},as.pda)
+	pen = ss.newItem("Pen",{"tool","small"},as.pen)
+	faid = ss.newItem("First Aid Kit",{"tool","small"},as.faid)
 	
 	outfit.slots[2]:addItem(pen)
-	outfit.slots[3]:addItem(lighter)
 	outfit.slots[4]:addItem(idcard)
 	outfit.slots[5]:addItem(pda)
+	rucksack:addItem(faid)
 	
 	body:addItem(outfit)
 	
+	context = contextSlots(player,4)
 end
 
 function freeHand()
@@ -179,6 +165,36 @@ function swapHand()
 	if curHand == left then curHand = right else curHand = left end
 end
 
+function contextSlots(inventory,num)
+	local context = inv.new("Context")
+	local allEmpty = inv.listEmpty(inventory)
+	local allFull = inv.listItemSlots(inventory)
+	for i,slot in spairs(allFull, function(t,a,b) return t[b].viewpriority < t[a].viewpriority end) do
+		if #context.slots < num and slot.visible and slot.contextual then
+			context:addSlot(slot)
+			print("added slot to context")
+		end
+	end
+	if #context.slots < num then
+		for i,slot in spairs(allEmpty, function(t,a,b) return t[b].viewpriority < t[a].viewpriority end) do
+			if #context.slots < num and slot.visible and slot.contextual then
+				context:addSlot(slot)
+				print("added slot to context")
+			end
+		end
+	end
+	return context
+end
+
+function mostAccess(inventory)
+	local all = inv.listSlots(inventory)
+	for i,slot in spairs(all, function(t,a,b) return t[b].viewpriority < t[a].viewpriority end) do
+		if slot.visible then
+			return slot
+		end
+	end
+	return inventory
+end
 
 function calcAccessable(obj)
 	local fullList = inv.listSlots(obj)
@@ -207,32 +223,47 @@ function love.keypressed(key)
 	local CTRL = love.keyboard.isDown('lctrl')
 	local SHIFT = love.keyboard.isDown('lshift')
 	
-	if not (ALT and CTRL and SHIFT) then
+	if not ALT and not CTRL and not SHIFT then
 		--normal non inventory keypress
 		--inventory num keypress
 		invKeypressed(key)
 	elseif ALT then
-		--ALT keypress
+		ALTKeypressed(key)
 	elseif CTRL then
-		--CTRL keypress
+		CTRLKeypressed(key)
 	elseif SHIFT then
 		--SHIFT keypress
 	end	
 end
 
-function handToSlot(slot)
+function slotToHand(slot,force)
 	--put current hand item into slot, or if slot is full, leave it in hand
 	local taken = slot:takeItem()
-	local placed = curHand:addItem(taken)
+	local placed = curHand:addItem(taken,force)
 	if placed then slot:addItem(taken) end
 end
 
-function slotToHand(slot)
+function handToSlot(slot,force)
 	--put item in slot from current hand
 	local taken = curHand:takeItem()
-	local placed = slot:addItem(taken)
+	local placed = slot:addItem(taken,force)
 	if placed then curHand:addItem(taken) end
 end
+
+function handToContainer(container)
+	--put item in slot from current hand
+	local taken = curHand:takeItem()
+	local placed = container:addItem(taken,force)
+	if placed then curHand:addItem(taken) end
+end
+
+function handToFolder(folder,force)
+	--put item in slot from current hand
+	local taken = curHand:takeItem()
+	local placed = folder:autoEquip(taken,force)
+	if placed then curHand:addItem(taken) end
+end
+
 
 function swapWithHand(slot)
 	--swap slot and hand or autostow if the hand item wont fit
@@ -247,7 +278,8 @@ function invKeypressed(key)
 	local slot = nil
 	if type(tonumber(key)) == "number" then
 		local numkey = tonumber(key)
-		if selected.slots[numkey] then slot = selected.slots[numkey] end
+		if selected.slots[numkey] then slot = selected.slots[numkey] 
+		elseif context.slots[numkey-4] then slot = context.slots[numkey-4] end
 	end
 	
 	if slot then
@@ -260,16 +292,17 @@ function invKeypressed(key)
 			menulevel = 1
 		elseif slot.item and curHand.item then
 			swapWithHand(slot)
-		elseif slot.item and slot.item.type == "item" and curHand.item == nil then
-			handToSlot(slot)
-		elseif slot.item == nil and curHand.item then
+		elseif slot.item and curHand.item == nil then
 			slotToHand(slot)
+		elseif slot.item == nil and curHand.item then
+			handToSlot(slot)
 		end
 	end
 	
 	if key == '`' then
 		menulevel = 0
 		selected = player
+		context = contextSlots(player,4)
 	elseif key == 'x' then
 		swapHand()
 	elseif key == 'e' then
@@ -281,6 +314,76 @@ function invKeypressed(key)
 	end
 	
 	
+end
+
+function ALTKeypressed(key)
+	--holding alt while interacting with the inventory will ignore whatever is in the slot
+	--this means generatlly discarding the slot item to put the hand item
+	--in the case of container items it will try to autostow in that object
+	--in the case of folders items it will try to autoequip in that object
+	local slot = nil
+	if type(tonumber(key)) == "number" then
+		local numkey = tonumber(key)
+		if selected.slots[numkey] then slot = selected.slots[numkey] 
+		elseif context.slots[numkey-4] then slot = context.slots[numkey-4] end
+	end
+	
+	if slot then
+		--interact with slot as normal
+		if slot.type == "folder" then
+			--dont open, autoequip
+			handToFolder(slot,true)
+		elseif slot.item and slot.item.type == "container" then
+			--dont open, autostow instead
+			handToContainer(slot.item)
+		else
+			--put from hand to slot, discard slot
+			handToSlot(slot,true)
+		end
+	end
+	
+	if key == 'e' then
+		local taken = curHand:takeItem()
+		if player:autoEquip(taken,true) then curHand:addItem(taken) end
+	elseif key == 'q' then
+		local taken = curHand:takeItem()
+		if player:autoStow(taken,true) then curHand:addItem(taken) end
+	end
+end
+
+function CTRLKeypressed(key)
+	--holding ctrl will ignore the held item generally meaning you take the targetted item
+	--and drop the held item. 
+	--in the case of container items it will grab the container item instead of opening it
+	local slot = nil
+	if type(tonumber(key)) == "number" then
+		local numkey = tonumber(key)
+		if selected.slots[numkey] then slot = selected.slots[numkey] 
+		elseif context.slots[numkey-4] then slot = context.slots[numkey-4] end
+	end
+	
+	if slot then
+		--interact with slot as normal
+		if slot.type == "folder" then
+			--dont open take item from inside folder
+			local itemSlots = inv.listItemSlots(slot)
+			slotToHand(itemSlots[1],true)
+		elseif slot.item and slot.item.type == "container" then
+			--dont open, take instead
+			slotToHand(slot,true)
+		else
+			--put from hand to slot, discard slot
+			slotToHand(slot,true)
+		end
+	end
+	
+	if key == 'e' then
+		local taken = curHand:takeItem()
+		if player:autoEquip(taken,true) then curHand:addItem(taken) end
+	elseif key == 'q' then
+		local taken = curHand:takeItem()
+		if player:autoStow(taken,true) then curHand:addItem(taken) end
+	end
 end
 
 function oldkeypressed(key)
@@ -410,10 +513,10 @@ function oldkeypressed(key)
 end
 
 function love.draw()
-	--local bx,by = (lg.getWidth()/2)-(as.map:getWidth()/2),(lg.getHeight()/2)-(as.map:getHeight()/2)
+	local bx,by = (lg.getWidth()/2)-(as.map:getWidth()/2),(lg.getHeight()/2)-(as.map:getHeight()/2)
 	--lg.draw(as.map,bx,by)
 	
-	local ih = 48
+	local ih = 72
 	local scale = ih/as.emptyslot:getWidth()
 	local mar = 4
 	local mx = lg.getWidth()/2
@@ -457,9 +560,9 @@ function love.draw()
 		end
 	end
 	
-	for i=1,4 do
-		lg.draw(as.emptyslot,b2x+(i-1)*(ih+mar),bary,0,scale,scale)
-			
+	for i,slot in ipairs(context.slots) do
+		drawSlot(slot,b2x+(i-1)*(ih+mar),bary,scale)
+		if menulevel == 0 then lg.print(i+4,b2x+(i-1)*(ih+mar)+4,bary+4) end	
 	end
 	
 	--if not selected == player then
@@ -480,20 +583,31 @@ function drawSlot(slot,x,y,scale)
 		for i=#slot.slots,1,-1 do
 			lg.draw(as.back,x,y-(i*4),0,scale,scale)
 		end
-	end
-	
-	if slot.item and slot.item.type == "container" and not (selected == slot.item) then
+		--local mostAccess = contextSlots(slot,1)
+		local img = slot.img or as.emptyslot
+		lg.draw(img,x,y,0,scale,scale)
+		if slot.item then 
+			lg.draw(slot.item.img or as.faid,x,y,0,scale,scale)
+		end
+	elseif slot.item and slot.item.type == "container" and not (selected == slot.item) then
 		for i=#slot.item.slots,1,-1 do
 			lg.draw(as.back,x,y-(i*4),0,scale,scale)
+		end
+		local img = slot.img or as.emptyslot
+		lg.draw(img,x,y,0,scale,scale)
+		if slot.item then 
+			lg.draw(slot.item.img or as.faid,x,y,0,scale,scale)
+		end
+	elseif slot.type == "slot" then
+		local img = slot.img or as.emptyslot
+		lg.draw(img,x,y,0,scale,scale)
+		if slot.item then 
+			lg.draw(slot.item.img or as.faid,x,y,0,scale,scale)
 		end
 	end
 	
 	
-	local img = slot.img or as.emptyslot
-	lg.draw(img,x,y,0,scale,scale)
-	if slot.item then 
-		lg.draw(slot.item.img or as.faid,x,y,0,scale,scale)
-	end
+	
 end
 
 function drawOpenFolder(slot,x,y,ihm,scale)

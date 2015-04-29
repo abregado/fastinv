@@ -36,6 +36,10 @@ function fastinv.newSlotFolder(name)
 	o.toggle = fastinv.toggle
 	o.autoStow = fastinv.autoStow
 	o.autoEquip = fastinv.autoEquip
+	o.listSlots = fastinv.listSlots
+	o.listItems = fastinv.listItems
+	o.listItemSlots = fastinv.listItemSlots
+	o.listEmpty = fastinv.listEmpty
 	return o
 end
 
@@ -58,10 +62,9 @@ function fastinv.newSlot(name,stores,autostow,equiptarget,priority)
 end
 
 --creates a new Item entity. Items are only stored in slots
-function fastinv.newItem(name,types,priorities)
+function fastinv.newItem(name,types)
 	local o = {}
 	o.name = name
-	o.priorities = priorities or {}
 	o.type = "item"
 	o.types = types or {}
 	return o
@@ -86,6 +89,8 @@ function fastinv.newContainerItem(name,types,slots,stores)
 		end
 	end
 	o.draw = fastinv.draw
+	o.addSlot = fastinv.addSlot
+	o.addItem = fastinv.autoStow
 	o.toggle = fastinv.toggle
 	return o
 end
@@ -221,7 +226,7 @@ end
 function fastinv.autoStow(self,item)
 	if item then
 		--create complete slotlist that can hold this item
-		local slotList = fastinv.listSlots(player)
+		local slotList = fastinv.listSlots(self)
 		--print("slotlist was "..#slotList.." long")
 		local holdableList = {}
 		for i,slot in ipairs(slotList) do
@@ -249,7 +254,7 @@ end
 function fastinv.autoEquip(self,item)
 	if item then
 		--create complete slotlist that can hold this item
-		local slotList = fastinv.listSlots(player)
+		local slotList = fastinv.listSlots(self)
 		--print("slotlist was "..#slotList.." long")
 		local holdableList = {}
 		for i,slot in ipairs(slotList) do
@@ -312,6 +317,30 @@ function fastinv.listItems(self)
 		end
 	end
 	return allItems
+end
+
+--get all slots with items in an inventory
+function fastinv.listItemSlots(self)
+	local allSlots = fastinv.listSlots(self)
+	local allItemSlots = {}
+	for i,slot in ipairs(allSlots) do
+		if slot.item then
+			table.insert(allItemSlots,slot)
+		end
+	end
+	return allItemSlots
+end
+
+--get all empty slots in an inventory
+function fastinv.listEmpty(self)
+	local allSlots = fastinv.listSlots(self)
+	local allEmpty = {}
+	for i,slot in ipairs(allSlots) do
+		if slot.item == nil then
+			table.insert(allEmpty,slot)
+		end
+	end
+	return allEmpty
 end
 
 --when passed two slots, their contents will be swapped if possible
