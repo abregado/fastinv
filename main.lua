@@ -100,6 +100,8 @@ healingItem = {5,2,2,0}
 oftenUsed = {2,2,2,2}
 defaultUse = {0,0,0,0}
 
+local mapX = 0
+local mapY = 0
 
 function love.load()
 	love.graphics.setDefaultFilter("nearest","nearest")
@@ -292,6 +294,7 @@ function love.keypressed(key)
 	
 	if not ALT and not CTRL and not SHIFT then
 		--normal non inventory keypress
+		moveMap(key)
 		--inventory num keypress
 		invKeypressed(key)
 	elseif ALT then
@@ -301,6 +304,13 @@ function love.keypressed(key)
 	elseif SHIFT then
 		--SHIFT keypress
 	end	
+end
+
+function moveMap(key)
+	if key == 'up' then mapY = mapY -32 end
+	if key == 'down' then mapY = mapY +32 end
+	if key == 'left' then mapX = mapX -32 end
+	if key == 'right' then mapX = mapX +32 end
 end
 
 function slotToHand(slot,force)
@@ -392,6 +402,9 @@ function invKeypressed(key)
 		context = contextSlots(player,4)
 	elseif key == 'x' then
 		swapHand()
+	elseif key == 'c' and menulevel == 0 and curHand.item and curHand.item.type == "container" then
+		selected = curHand.item
+		menulevel = 1
 	elseif key == ']' then
 		table.insert(inv.ground,table.remove(inv.ground,1))
 	elseif key == '[' then
@@ -593,7 +606,7 @@ end
 
 function love.draw()
 	local bx,by = (lg.getWidth()/2)-(as.map:getWidth()/2),(lg.getHeight()/2)-(as.map:getHeight()/2)
-	--lg.draw(as.map,bx,by)
+	lg.draw(as.map,bx-mapX,by-mapY)
 	
 	local ih = 72
 	local scale = ih/as.emptyslot:getWidth()
@@ -611,17 +624,37 @@ function love.draw()
 	
 	local lhand = as.lhand
 	local rhand = as.rhand
+	
+	
+	drawInfoPanel(5,lg.getHeight()/5)
+	
 	if curHand == left then lhand = as.lhandact else rhand = as.rhandact end
 	
 	local selectedFound = false
 	
 	lg.draw(lhand,h1x,bary,0,scale,scale)
 	if left.item then 
-		lg.draw(left.item.img or as.faid,h1x,bary,0,scale,scale)
+		if left.item == selected and selected.type == "container" then
+			drawOpenContainer(selected,h1x,bary,ih+mar,scale)
+			selectedFound = true
+		elseif left.item.type == "container" and left == curHand and menulevel == 0 then
+			lg.draw(left.item.img or as.faid,h1x,bary,0,scale,scale)
+			lg.print('C',h1x+5,bary+5)
+		else
+			lg.draw(left.item.img or as.faid,h1x,bary,0,scale,scale)
+		end
 	end
 	lg.draw(rhand,h2x,bary,0,scale,scale)
 	if right.item then 
-		lg.draw(right.item.img or as.faid,h2x,bary,0,scale,scale)
+		if right.item == selected and selected.type == "container" then
+			drawOpenContainer(selected,h2x,bary,ih+mar,scale)
+			selectedFound = true
+		elseif right.item.type == "container" and right == curHand and menulevel == 0 then
+			lg.draw(right.item.img or as.faid,h2x,bary,0,scale,scale)
+			lg.print('C',h2x+5,bary+5)
+		else
+			lg.draw(right.item.img or as.faid,h2x,bary,0,scale,scale)
+		end
 	end
 	
 	for i=1,4 do
@@ -662,7 +695,46 @@ function love.draw()
 	--lg.print(tostring(selectedFound),0,50)
 	
 	drawGround(ih+mar,scale,mx-(ih/2))
+end
+
+function drawInfoPanel(x,y)
+	local texts = {
+		"This is a prototype inventory",
+		"system to replace the one found",
+		"in Space Station 13.",
+		" ",
+		"The idea is to create a context",
+		"sensitive solution that is",
+		"controllable from the number",
+		"keys.",
+		" ",
+		"Holding ALT will force items",
+		"into a slot, and will also",
+		"auto store/equip them in",
+		"containers and backpacks.",
+		" ",
+		"Holding CTRL will force items",
+		"To your hand. This will also",
+		"allow you to pick up containers",
+		"and backbacks."
+		}
+
+	lg.setColor(3,150,150,200)	
+	local w = fontsml:getWidth("allow you to pick up containers")+60
+	local lh = (fontsml:getHeight('a')+3)
+	local h = (#texts+2)*lh
+	lg.rectangle('fill',x,y,w,h)
+	lg.setLineWidth(3)
+	lg.setColor(33,180,180)
+	lg.rectangle('line',x+5,y+5,w-10,h-10)
 	
+	lg.setColor(255,255,255)
+	lg.setLineWidth(1)
+	for i,v in ipairs(texts) do
+		lg.print(v,x+20,y+(i)*lh)
+	end
+	
+	lg.setColor(255,255,255)
 end
 
 function drawGround(ihm,scale,sx)
@@ -685,6 +757,15 @@ function drawGround(ihm,scale,sx)
 	if v then
 		lg.draw(as.emptyslot,sx-(ihm/2),0,0,scale,scale)
 		lg.draw(v.img or as.faid,sx-(ihm/2),0,0,scale,scale)
+		
+		lg.setColor(0,0,0)
+		lg.setFont(font)
+		lg.print(v.name,sx-(font:getWidth(v.name)/2)+2,ihm+2)
+		lg.setFont(fontsml)
+		local text ="Press t to take item, or [] to move list"
+		lg.print(text,sx-(fontsml:getWidth(text)/2)+2,ihm+font:getHeight(v.name)+5+2)
+		
+		lg.setColor(255,255,255)
 		lg.setFont(font)
 		lg.print(v.name,sx-(font:getWidth(v.name)/2),ihm)
 		lg.setFont(fontsml)
