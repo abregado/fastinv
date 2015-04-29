@@ -4,9 +4,10 @@ local font = love.graphics.newFont(30)
 local fontsml = love.graphics.newFont(15)
 
 
-function fastinv.init(itemtypes,sizes)
+function fastinv.init(itemtypes,sizes,ground)
 	fastinv.itemtypes = itemtypes or {"anytype"}
 	fastinv.sizes = sizes or {"anysize"}
+	fastinv.ground = ground or {}
 end
 
 function fastinv.new(name,structure)
@@ -127,9 +128,9 @@ function fastinv.addItem(self,item,drop)
 end
 
 --removes item from a slot, adding it to the passed array or destroying it
-function fastinv.dropItem(self,ground)
+function fastinv.dropItem(self)
 	if self.item then
-		if ground then table.insert(ground,self.item) end
+		table.insert(fastinv.ground,self.item)
 		self.item = nil
 		return true
 	end
@@ -458,7 +459,10 @@ function fastinv.drawHori(self,x,y)
 			local oy = 32 - (fontsml:getHeight()/2)
 			lg.setColor(0,0,0)
 			lg.print(slot.name,x+ox,y+oy)
-			if slot.item then fastinv.drawItem(slot.item,x,y) end
+			if slot.item then 
+				fastinv.drawItem(slot.item,x,y) 
+				
+			end
 			x = x + 5 + 64
 		end
 	end	

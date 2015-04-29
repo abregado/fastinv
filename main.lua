@@ -32,7 +32,20 @@ as.outfit = lg.newImage('/assets/whiteoutfit.png')
 as.card = lg.newImage('/assets/idcard.png')
 as.pda = lg.newImage('/assets/pda.png')
 as.pen = lg.newImage('/assets/pen.png')
-as.lighter = lg.newImage('/assets/lighter.png')
+as.goggles = lg.newImage('/assets/goggles.png')
+as.galoshes = lg.newImage('/assets/galoshes.png')
+
+as.medbelt = lg.newImage('/assets/medical/medbelt.png')
+as.needle = lg.newImage('/assets/medical/needle.png')
+as.oxy = lg.newImage('/assets/medical/oxy.png')
+as.medpack = lg.newImage('/assets/medical/medpack.png')
+as.medshoes = lg.newImage('/assets/medical/shoes.png')
+as.biohood = lg.newImage('/assets/medical/biohelm.png')
+as.biosuit = lg.newImage('/assets/medical/biosuit.png')
+as.earpiece = lg.newImage('/assets/medical/headset.png')
+as.medhud = lg.newImage('/assets/medical/medhud.png')
+as.medoutfit = lg.newImage('/assets/medical/med.png')
+as.medoutfit = lg.newImage('/assets/medical/medibackpack.png')
 
 
 ground = {}
@@ -60,7 +73,8 @@ types = {
 	"mask",
 	"canister",
 	"ammunition",
-	"box"
+	"box",
+	"medical"
 	}
 
 sizes = {
@@ -134,10 +148,33 @@ function love.load()
 		0,as.outfit
 	)
 	
+	biosuit = ss.newContainerItem("Biosuit",{"armor","large"},
+		{
+			ss.newSlot("Oxy",{"canister","small"},true,true,10,as.suitstorage,true)
+			},
+		0,as.outfit
+	)
+	
+	medoutfit = ss.newContainerItem("Medical Uniform",{"clothing","large"},
+		{
+			ss.newSlot("Belt",{"belt","large"},true,true,0,as.belt,true),
+			ss.newSlot("Pocket",{"anytype","small"},true,false,0,as.pocket,true),
+			ss.newSlot("Pocket",{"anytype","small"},true,false,0,as.pocket,true),
+			ss.newSlot("PDA Clip",{"pda","card","small"},true,true,2,as.id,true),
+			ss.newSlot("ID Clip",{"pda","card","small"},true,true,2,as.id,true)
+			},
+		0,as.outfit
+	)
+	
 	idcard = ss.newItem("Scientist ID Card",{"card","small"},as.card)
 	pda = ss.newItem("Science PDA",{"pda","small"},as.pda)
 	pen = ss.newItem("Pen",{"tool","small"},as.pen)
 	faid = ss.newItem("First Aid Kit",{"tool","small"},as.faid)
+	goggles = ss.newItem("Meson Goggles",{"visor","small"},as.goggles)
+	galoshes = ss.newItem("Galoshes",{"boots","small"},as.galoshes)
+	
+	eyes:addItem(goggles)
+	shoes:addItem(galoshes)
 	
 	outfit.slots[2]:addItem(pen)
 	outfit.slots[4]:addItem(idcard)
@@ -147,6 +184,36 @@ function love.load()
 	body:addItem(outfit)
 	
 	context = contextSlots(player,4)
+	
+	table.insert(inv.ground, ss.newItem("Bio Hood",{"helmet","large"},as.biohood))
+	table.insert(inv.ground, ss.newItem("Medical HUD",{"visor","small"},as.medhud))
+	table.insert(inv.ground, ss.newItem("Small Oxy",{"canister","small"},as.oxy))
+	table.insert(inv.ground, ss.newItem("Medical Shoes",{"shoes","small"},as.medshoes))
+	table.insert(inv.ground, ss.newItem("Medbay Headset",{"earpiece","small"},as.earpiece))
+	table.insert(inv.ground, ss.newItem("First Aid",{"tool","large"},as.faid))
+	
+	medbelt = ss.newContainerItem("Medical Belt",{"belt","large"},
+		{
+			ss.newSlot("Pouch",{"medical","small"},true,true,0,as.pocket,true),
+			ss.newSlot("Pouch",{"medical","small"},true,true,0,as.pocket,true),
+			ss.newSlot("Pouch",{"medical","small"},true,true,0,as.pocket,true),
+			ss.newSlot("Pouch",{"medical","small"},true,true,0,as.pocket,true),
+			},
+		5,as.medbelt)
+	
+	medbelt:addItem(ss.newItem("Syringe",{"medical","small"},as.needle))
+	medbelt:addItem(ss.newItem("Syringe",{"medical","small"},as.needle))
+	medbelt:addItem(ss.newItem("Medpack",{"medical","small"},as.medpack))
+	medbelt:addItem(ss.newItem("Medpack",{"medical","small"},as.medpack))
+	
+	medisach = ss.newContainerItem("Medical Pack",{"backpack","large"},4,{"anytype","small"},as.medbackpack)
+		
+	table.insert(inv.ground, medbelt)
+	table.insert(inv.ground, medoutfit)
+	table.insert(inv.ground, medisach)
+	table.insert(inv.ground, biosuit)
+	
+	
 end
 
 function freeHand()
@@ -243,11 +310,23 @@ function slotToHand(slot,force)
 	if placed then slot:addItem(taken) end
 end
 
+function groundToHand(force)
+	--put current hand item into slot, or if slot is full, leave it in hand
+	local taken = table.remove(inv.ground,1)
+	local placed = curHand:addItem(taken,force)
+	if placed then table.insert(inv.ground,1,taken) end
+end
+
 function handToSlot(slot,force)
 	--put item in slot from current hand
 	local taken = curHand:takeItem()
 	local placed = slot:addItem(taken,force)
 	if placed then curHand:addItem(taken) end
+end
+
+function dropHand()
+	--drop current hand item
+	curHand:dropItem()
 end
 
 function handToContainer(container)
@@ -262,6 +341,14 @@ function handToFolder(folder,force)
 	local taken = curHand:takeItem()
 	local placed = folder:autoEquip(taken,force)
 	if placed then curHand:addItem(taken) end
+end
+
+function folderToHand(folder,force)
+	--get the first item from the folder
+	local itemSlots = folder:listItemSlots()
+	if #itemSlots > 0 then
+		slotToHand(itemSlots[1],true)
+	end
 end
 
 
@@ -305,6 +392,14 @@ function invKeypressed(key)
 		context = contextSlots(player,4)
 	elseif key == 'x' then
 		swapHand()
+	elseif key == ']' then
+		table.insert(inv.ground,table.remove(inv.ground,1))
+	elseif key == '[' then
+		table.insert(inv.ground,1,table.remove(inv.ground,#inv.ground))
+	elseif key == 'z' then
+		dropHand()
+	elseif key == 't' then
+		groundToHand()
 	elseif key == 'e' then
 		local taken = curHand:takeItem()
 		if player:autoEquip(taken) then curHand:addItem(taken) end
@@ -342,13 +437,6 @@ function ALTKeypressed(key)
 		end
 	end
 	
-	if key == 'e' then
-		local taken = curHand:takeItem()
-		if player:autoEquip(taken,true) then curHand:addItem(taken) end
-	elseif key == 'q' then
-		local taken = curHand:takeItem()
-		if player:autoStow(taken,true) then curHand:addItem(taken) end
-	end
 end
 
 function CTRLKeypressed(key)
@@ -366,8 +454,7 @@ function CTRLKeypressed(key)
 		--interact with slot as normal
 		if slot.type == "folder" then
 			--dont open take item from inside folder
-			local itemSlots = inv.listItemSlots(slot)
-			slotToHand(itemSlots[1],true)
+			folderToHand(slot)
 		elseif slot.item and slot.item.type == "container" then
 			--dont open, take instead
 			slotToHand(slot,true)
@@ -375,14 +462,6 @@ function CTRLKeypressed(key)
 			--put from hand to slot, discard slot
 			slotToHand(slot,true)
 		end
-	end
-	
-	if key == 'e' then
-		local taken = curHand:takeItem()
-		if player:autoEquip(taken,true) then curHand:addItem(taken) end
-	elseif key == 'q' then
-		local taken = curHand:takeItem()
-		if player:autoStow(taken,true) then curHand:addItem(taken) end
 	end
 end
 
@@ -569,7 +648,36 @@ function love.draw()
 		
 	--end
 	
+	drawGround(ih+mar,scale,mx-(ih/2))
 	
+end
+
+function drawGround(ihm,scale,sx)
+	for i=2,math.floor(#inv.ground) do
+		local v = inv.ground[i] or nil
+		if v then
+			lg.draw(as.emptyslot,sx+((i-1)*ihm),0,0,scale,scale)
+			lg.draw(v.img or as.faid,sx+((i-1)*ihm),0,0,scale,scale)
+		end
+	end
+	for i=1,#inv.ground-1,-1 do
+		local v = inv.ground[#inv.ground-i] or nil
+		if v then
+			local x = sx-((i+1)*ihm)
+			lg.draw(as.emptyslot,x,0,0,scale,scale)
+			lg.draw(v.img or as.faid,x,0,0,scale,scale)
+		end
+	end
+	local v = inv.ground[1] or nil
+	if v then
+		lg.draw(as.emptyslot,sx-(ihm/2),0,0,scale,scale)
+		lg.draw(v.img or as.faid,sx-(ihm/2),0,0,scale,scale)
+		lg.setFont(font)
+		lg.print(v.name,sx-(font:getWidth(v.name)/2),ihm)
+		lg.setFont(fontsml)
+		local text ="Press t to take item, or [] to move list"
+		lg.print(text,sx-(fontsml:getWidth(text)/2),ihm+font:getHeight(v.name)+5)
+	end
 end
 
 function drawSlot(slot,x,y,scale)
