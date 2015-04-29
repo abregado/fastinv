@@ -1,5 +1,6 @@
 inv = require 'fastinv' 
 ss = require 'ssItem'
+intent = require 'intent'
 
 local lg = love.graphics
 local font = love.graphics.newFont(30)
@@ -53,6 +54,53 @@ as.bonesaw = lg.newImage('/assets/bonesaw.png')
 
 
 ground = {}
+
+local lefttexts = {
+		"This is a prototype inventory",
+		"system to replace the one found",
+		"in Space Station 13.",
+		" ",
+		"The idea is to create a context",
+		"sensitive solution that is",
+		"controllable from the number",
+		"keys.",
+		" ",
+		"Holding ALT will force items",
+		"into a slot, and will also",
+		"auto store/equip them in",
+		"containers and backpacks.",
+		" ",
+		"Holding CTRL will force items",
+		"To your hand. This will also",
+		"allow you to pick up containers",
+		"and backbacks.",
+		" ",
+		"Press x to change active hand.",
+		"Press q to auto store held item.",
+		"Press e to auto equip held item.",
+		"Press z to drop held item"
+		}
+		
+local righttexts = {
+		"The four slots below are",
+		"context sensitive. you may",
+		"change your action intent",
+		"by pushing F.",
+		" ",
+		"This will modify the order of",
+		"these slots. They are sorted",
+		"by how helpful or harmful the",
+		"item is.",
+		" ",
+		"Try to equip a Bonesaw and ",
+		"Medipack to see how this",
+		"works.",
+		" ",
+		"Use the arrow keys to explore",
+		"the station. This map is",
+		"Ministation and is maintained",
+		"by Giacom on Github."  
+		}
 
 types = {
 	"belt",
@@ -109,7 +157,7 @@ local mapY = 1088
 
 function love.load()
 	love.graphics.setDefaultFilter("nearest","nearest")
-	local modes = love.window.getFullscreenModes()
+	local modes = love.window.getFullscreenModes(2)
 	love.window.setMode(modes[#modes].width,modes[#modes].height,{fullscreen=true,fullscreentype="desktop"})
 	
 	menulevel = 0
@@ -124,7 +172,7 @@ function love.load()
 	complex.img = as.suit
 	body = player:addSlot(ss.newSlot("Body",{"clothing","anysize"},false,true,5,as.uniform,false))
 	pack = player:addSlot(ss.newSlot("Back",{"large","backpack","satchel","jetpack","canister","tool","slingable"},true,true,0,as.suitstore,false))
-	rucksack = ss.newContainerItem("Rucksack",{"backpack","large"},1,{"anytype","small"},as.backpack)
+	rucksack = ss.newContainerItem("Rucksack",{"backpack","large"},5,{"anytype","small"},as.backpack)
 	pack:addItem(rucksack)
 	
 	head = simple:addSlot(ss.newSlot("Head",{"helmet","hat","anysize"},false,true,0,as.head,true))
@@ -172,11 +220,11 @@ function love.load()
 		{},as.medoutfit
 	)
 	
-	idcard = ss.newItem("Scientist ID Card",{"card","small"},as.card)
-	pda = ss.newItem("Science PDA",{"pda","small"},as.pda)
-	pen = ss.newItem("Pen",{"tool","small"},as.pen)
-	faid = ss.newItem("First Aid Kit",{"tool","small"},as.faid)
-	goggles = ss.newItem("Meson Goggles",{"visor","small"},as.goggles)
+	idcard = ss.newItem("Scientist ID Card",{"card","small"},as.card,{1,1})
+	pda = ss.newItem("Science PDA",{"pda","small"},as.pda,{1,1})
+	pen = ss.newItem("Pen",{"tool","small"},as.pen,{0,2})
+	faid = ss.newItem("First Aid Kit",{"tool","small"},as.faid,{2,0})
+	goggles = ss.newItem("Meson Goggles",{"visor","small"},as.goggles,{1,0})
 	galoshes = ss.newItem("Galoshes",{"boots","small"},as.galoshes)
 	
 	eyes:addItem(goggles)
@@ -191,14 +239,14 @@ function love.load()
 	
 	context = contextSlots(player,4)
 	
-	table.insert(inv.ground, ss.newItem("Bio Hood",{"helmet","large"},as.biohood))
-	table.insert(inv.ground, ss.newItem("Medical HUD",{"visor","small"},as.medhud))
-	table.insert(inv.ground, ss.newItem("Small Oxy",{"canister","small"},as.oxy))
+	table.insert(inv.ground, ss.newItem("Bio Hood",{"helmet","large"},as.biohood,{2,0}))
+	table.insert(inv.ground, ss.newItem("Medical HUD",{"visor","small"},as.medhud,{1,0}))
+	table.insert(inv.ground, ss.newItem("Small Oxy",{"canister","small"},as.oxy,{1,0}))
 	table.insert(inv.ground, ss.newItem("Medical Shoes",{"shoes","small"},as.medshoes))
 	table.insert(inv.ground, ss.newItem("Medbay Headset",{"earpiece","small"},as.earpiece))
-	table.insert(inv.ground, ss.newItem("First Aid",{"tool","large"},as.faid))
-	table.insert(inv.ground, ss.newItem("Revolver",{"gun","small"},as.revolver))
-	table.insert(inv.ground, ss.newItem("Bonesaw",{"medical","large"},as.bonesaw))
+	table.insert(inv.ground, ss.newItem("First Aid",{"tool","small"},as.faid,{4,0}))
+	table.insert(inv.ground, ss.newItem("Revolver",{"gun","small"},as.revolver,{0,5}))
+	table.insert(inv.ground, ss.newItem("Bonesaw",{"medical","large"},as.bonesaw,{2,4}))
 	
 	medbelt = ss.newContainerItem("Medical Belt",{"belt","large"},
 		{
@@ -207,20 +255,20 @@ function love.load()
 			ss.newSlot("Pouch",{"medical","small"},true,true,0,as.pocket,true),
 			ss.newSlot("Pouch",{"medical","small"},true,true,0,as.pocket,true)
 			},
-		{},as.medbelt)
+		{},as.medbelt,{4,0})
 		
 	holster = ss.newContainerItem("Gunbelt",{"belt","large"},
 		{
 			ss.newSlot("Holster",{"gun","small"},true,true,8,as.pocket,true),
 			ss.newSlot("Pouch",{"anytype","small"},true,false,0,as.pocket,true)
 			},
-		{},as.holster)
+		{},as.holster,{0,4})
 	
-	medbelt:addItem(ss.newItem("Syringe",{"medical","small"},as.needle))
-	medbelt:addItem(ss.newItem("Syringe",{"medical","small"},as.needle))
-	medbelt:addItem(ss.newItem("Medpack",{"medical","small"},as.medpack))
+	medbelt:addItem(ss.newItem("Syringe",{"medical","small"},as.needle,{3,2}))
+	medbelt:addItem(ss.newItem("Syringe",{"medical","small"},as.needle),{3,2})
+	medbelt:addItem(ss.newItem("Medpack",{"medical","small"},as.medpack,{3,0}))
 	
-	medisach = ss.newContainerItem("Medical Pack",{"backpack","large"},4,{"anytype","small"},as.medbackpack)
+	medisach = ss.newContainerItem("Medical Pack",{"backpack","large"},4,{"anytype","small"},as.medbackpack,{0,0})
 		
 	table.insert(inv.ground, medbelt)
 	table.insert(inv.ground, holster)
@@ -252,7 +300,7 @@ function contextSlots(inventory,num)
 	local allEmpty = inv.listEmpty(inventory)
 	local allFull = inv.listItemSlots(inventory)
 
-	for i,slot in spairs(allFull, function(t,a,b) return t[b].viewpriority < t[a].viewpriority end) do
+	for i,slot in spairs(allFull, function(t,a,b) return t[b].item.intents[intent.state] < t[a].item.intents[intent.state] end) do
 		if #context.slots < num and slot.visible and slot.contextual then
 			context:addSlot(slot)
 			print("added slot to context")
@@ -417,6 +465,8 @@ function invKeypressed(key)
 		selected = player
 	elseif key == 'x' then
 		swapHand()
+	elseif key == 'f' then
+		intent.switch()
 	elseif key == 'c' and menulevel == 0 and curHand.item and curHand.item.type == "container" then
 		selected = curHand.item
 		menulevel = 1
@@ -643,7 +693,10 @@ function love.draw()
 	local rhand = as.rhand
 	
 	
-	drawInfoPanel(5,lg.getHeight()/5)
+	drawInfoPanel(5,lg.getHeight()/6,lefttexts)
+	drawInfoPanel(lg.getWidth()-fontsml:getWidth("allow you to pick up containers")-60,lg.getHeight()/5,righttexts)
+	
+	intent.draw(mx+ih+6,bary,scale/1.5)
 	
 	if curHand == left then lhand = as.lhandact else rhand = as.rhandact end
 	
@@ -714,27 +767,10 @@ function love.draw()
 	drawGround(ih+mar,scale,mx-(ih/2))
 end
 
-function drawInfoPanel(x,y)
-	local texts = {
-		"This is a prototype inventory",
-		"system to replace the one found",
-		"in Space Station 13.",
-		" ",
-		"The idea is to create a context",
-		"sensitive solution that is",
-		"controllable from the number",
-		"keys.",
-		" ",
-		"Holding ALT will force items",
-		"into a slot, and will also",
-		"auto store/equip them in",
-		"containers and backpacks.",
-		" ",
-		"Holding CTRL will force items",
-		"To your hand. This will also",
-		"allow you to pick up containers",
-		"and backbacks."
-		}
+
+
+function drawInfoPanel(x,y,texts)
+	
 
 	lg.setColor(3,150,150,200)	
 	local w = fontsml:getWidth("allow you to pick up containers")+60

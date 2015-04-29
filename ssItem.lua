@@ -5,7 +5,7 @@ local ss = {}
 function ss.newItem(name,types,img,intents)
 	local o = inv.newItem(name,types)
 	o.img = img
-	o.intents = intents
+	o.intents = intents or {0,0}
 	o.active = false
 	o.activate = ss.activate
 	return o
@@ -18,9 +18,8 @@ function ss.newSlot(name,stores,autostow,equiptarget,priority,img,contextual)
 	return o
 end
 
-function ss.newContainerItem(name,types,slots,stores,img)
-	local o = inv.newItem(name,types)
-	o.img = img
+function ss.newContainerItem(name,types,slots,stores,img,intents)
+	local o = ss.newItem(name,types,img,intents)
 	o.type = "container"
 	--if given a table, use those slots, otherwise generate a number of slots using stores, otherwise make 3 any slots
 	if type(slots) == "table" then
