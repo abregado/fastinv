@@ -242,7 +242,7 @@ function contextSlots(inventory,num)
 			print("added slot to context")
 		end
 	end
-	if #context.slots < num then
+	if #context.slots < num and #allEmpty > 0 then
 		for i,slot in spairs(allEmpty, function(t,a,b) return t[b].viewpriority < t[a].viewpriority end) do
 			if #context.slots < num and slot.visible and slot.contextual then
 				context:addSlot(slot)
@@ -613,6 +613,8 @@ function love.draw()
 	local rhand = as.rhand
 	if curHand == left then lhand = as.lhandact else rhand = as.rhandact end
 	
+	local selectedFound = false
+	
 	lg.draw(lhand,h1x,bary,0,scale,scale)
 	if left.item then 
 		lg.draw(left.item.img or as.faid,h1x,bary,0,scale,scale)
@@ -625,12 +627,15 @@ function love.draw()
 	for i=1,4 do
 		local slot = player.slots[i]
 		if selected == slot.item then
-			drawOpenContainer(slot,b1x+(i-1)*(ih+mar),bary,ih+mar,scale)
+			drawOpenContainer(slot.item,b1x+(i-1)*(ih+mar),bary,ih+mar,scale)
+			selectedFound = true
 		elseif selected == slot then		
 			if slot.type == "slot" then
 				drawSlot(selected,b1x+(i-1)*(ih+mar),bary,scale)
+				selectedFound = true
 			elseif slot.type == "folder" then
 				drawOpenFolder(selected,b1x+(i-1)*(ih+mar),bary,ih+mar,scale)
+				selectedFound = true
 			end
 		else
 			drawSlot(slot,b1x+(i-1)*(ih+mar),bary,scale)
@@ -644,9 +649,17 @@ function love.draw()
 		if menulevel == 0 then lg.print(i+4,b2x+(i-1)*(ih+mar)+4,bary+4) end	
 	end
 	
-	--if not selected == player then
-		
-	--end
+	if not selectedFound and not (selected == player) then
+		if selected.type == "container" then
+			drawOpenContainer(selected,h1x,bary-ih-mar,ih+mar,scale)
+		elseif selected.type == "folder" then
+			drawOpenFolder(selected,h1x,bary-ih-mar,ih+mar,scale)
+		end
+	end
+	
+	--lg.print(selected.name,0,0)
+	--lg.print(selected.type,0,25)
+	--lg.print(tostring(selectedFound),0,50)
 	
 	drawGround(ih+mar,scale,mx-(ih/2))
 	
@@ -692,25 +705,35 @@ function drawSlot(slot,x,y,scale)
 			lg.draw(as.back,x,y-(i*4),0,scale,scale)
 		end
 		--local mostAccess = contextSlots(slot,1)
-		local img = slot.img or as.emptyslot
-		lg.draw(img,x,y,0,scale,scale)
 		if slot.item then 
+			lg.draw(as.emptyslot,x,y,0,scale,scale)
 			lg.draw(slot.item.img or as.faid,x,y,0,scale,scale)
+		else
+			local img = slot.img or as.emptyslot
+			lg.draw(img,x,y,0,scale,scale)
 		end
-	elseif slot.item and slot.item.type == "container" and not (selected == slot.item) then
-		for i=#slot.item.slots,1,-1 do
-			lg.draw(as.back,x,y-(i*4),0,scale,scale)
+	elseif slot.item and slot.item.type == "container" then --and not (selected == slot.item) then
+		if not (selected == slot.item) then
+			for i=#slot.item.slots,1,-1 do
+				lg.draw(as.back,x,y-(i*4),0,scale,scale)
+			end
 		end
-		local img = slot.img or as.emptyslot
-		lg.draw(img,x,y,0,scale,scale)
+	
 		if slot.item then 
+			lg.draw(as.emptyslot,x,y,0,scale,scale)
 			lg.draw(slot.item.img or as.faid,x,y,0,scale,scale)
+		else
+			local img = slot.img or as.emptyslot
+			lg.draw(img,x,y,0,scale,scale)
 		end
 	elseif slot.type == "slot" then
-		local img = slot.img or as.emptyslot
-		lg.draw(img,x,y,0,scale,scale)
+		
 		if slot.item then 
+			lg.draw(as.emptyslot,x,y,0,scale,scale)
 			lg.draw(slot.item.img or as.faid,x,y,0,scale,scale)
+		else
+			local img = slot.img or as.emptyslot
+			lg.draw(img,x,y,0,scale,scale)
 		end
 	end
 	
@@ -735,18 +758,18 @@ function drawOpenFolder(slot,x,y,ihm,scale)
 	lg.print('~',x+4,y+4)
 end
 
-function drawOpenContainer(slot,x,y,ihm,scale)
+function drawOpenContainer(container,x,y,ihm,scale)
 	lg.setColor(255,255,255)
 	
-	for i=#slot.item.slots,1,-1 do
-		local nslot = slot.item.slots[i]
+	for i=#container.slots,1,-1 do
+		local nslot = container.slots[i]
 		drawSlot(nslot,x,y-(i*ihm),scale)
 		lg.print(i,x+4,y-(i*ihm)+4)
 	end	
 	
-	local img2 = slot.img or as.emptyslot
+	local img2 = as.emptyslot
 	lg.draw(img2,x,y,0,scale,scale)
-	lg.draw(slot.item.img or as.backpack,x,y,0,scale,scale)
+	lg.draw(container.img or as.backpack,x,y,0,scale,scale)
 	lg.print('~',x+4,y+4)
 end
 
