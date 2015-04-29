@@ -12,7 +12,7 @@ function ss.newItem(name,types,img,intents)
 end
 
 function ss.newSlot(name,stores,autostow,equiptarget,priority,img,contextual)
-	local o = inv.newSlot(name,stores,autostow or true,equiptarget or false,priority or 0)
+	local o = inv.newSlot(name,stores,autostow,equiptarget,priority)
 	o.img = img
 	o.contextual = contextual
 	return o

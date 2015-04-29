@@ -28,7 +28,7 @@ as.ears = lg.newImage('/assets/ears.png')
 as.back = lg.newImage('/assets/back.png')
 as.faid = lg.newImage('/assets/firstaid.png')
 as.backpack = lg.newImage('/assets/backpack.png')
-as.outfit = lg.newImage('/assets/whiteoutfit.png')
+as.outfit = lg.newImage('/assets/grey.png')
 as.card = lg.newImage('/assets/idcard.png')
 as.pda = lg.newImage('/assets/pda.png')
 as.pen = lg.newImage('/assets/pen.png')
@@ -45,7 +45,11 @@ as.biosuit = lg.newImage('/assets/medical/biosuit.png')
 as.earpiece = lg.newImage('/assets/medical/headset.png')
 as.medhud = lg.newImage('/assets/medical/medhud.png')
 as.medoutfit = lg.newImage('/assets/medical/med.png')
-as.medoutfit = lg.newImage('/assets/medical/medibackpack.png')
+as.medbackpack = lg.newImage('/assets/medical/medibackpack.png')
+
+as.holster = lg.newImage('/assets/holster.png')
+as.revolver = lg.newImage('/assets/revolv.png')
+as.bonesaw = lg.newImage('/assets/bonesaw.png')
 
 
 ground = {}
@@ -100,8 +104,8 @@ healingItem = {5,2,2,0}
 oftenUsed = {2,2,2,2}
 defaultUse = {0,0,0,0}
 
-local mapX = 0
-local mapY = 0
+local mapX = -736
+local mapY = 1088
 
 function love.load()
 	love.graphics.setDefaultFilter("nearest","nearest")
@@ -118,9 +122,9 @@ function love.load()
 	simple.img = as.glasses
 	complex = player:addSlot(inv.newSlotFolder("Worn:Complex"))
 	complex.img = as.suit
-	body = player:addSlot(ss.newSlot("Body",{"clothing","anysize"},false,true,1,as.uniform,false))
-	pack = player:addSlot(ss.newSlot("Back",{"large","backpack","satchel","jetpack","canister","tool","slingable"},true,true,as.suitstore,false))
-	rucksack = ss.newContainerItem("Rucksack",{"backpack","large"},5,{"anytype","small"},as.backpack)
+	body = player:addSlot(ss.newSlot("Body",{"clothing","anysize"},false,true,5,as.uniform,false))
+	pack = player:addSlot(ss.newSlot("Back",{"large","backpack","satchel","jetpack","canister","tool","slingable"},true,true,0,as.suitstore,false))
+	rucksack = ss.newContainerItem("Rucksack",{"backpack","large"},1,{"anytype","small"},as.backpack)
 	pack:addItem(rucksack)
 	
 	head = simple:addSlot(ss.newSlot("Head",{"helmet","hat","anysize"},false,true,0,as.head,true))
@@ -133,39 +137,39 @@ function love.load()
 	mask = complex:addSlot(ss.newSlot("Face",{"mask","anysize"},false,true,0,as.mask,true))
 	
 	hands = inv.new("Hands")
-	left = hands:addSlot(ss.newSlot("Left Hand",{"anytype","anysize"},false,0,as.lhand,false))
-	right = hands:addSlot(ss.newSlot("Right Hand",{"anytype","anysize"},false,0,as.rhand,false))
+	left = hands:addSlot(ss.newSlot("Left Hand",{"anytype","anysize"},false,false,0,as.lhand,false))
+	right = hands:addSlot(ss.newSlot("Right Hand",{"anytype","anysize"},false,false,0,as.rhand,false))
 		
 	selected = player
 	curHand = left
 	
 	outfit = ss.newContainerItem("Uniform",{"clothing","large"},
 		{
-			ss.newSlot("Belt",{"belt","large"},true,true,0,as.belt,true),
+			ss.newSlot("Belt",{"belt","canister","anysize"},true,true,10,as.belt,true),
 			ss.newSlot("Pocket",{"anytype","small"},true,false,0,as.pocket,true),
 			ss.newSlot("Pocket",{"anytype","small"},true,false,0,as.pocket,true),
-			ss.newSlot("PDA Clip",{"pda","card","small"},true,true,2,as.id,true),
-			ss.newSlot("ID Clip",{"pda","card","small"},true,true,2,as.id,true)
+			ss.newSlot("PDA Clip",{"pda","card","small"},true,true,1,as.id,true),
+			ss.newSlot("ID Clip",{"pda","card","small"},true,true,3,as.id,true)
 			},
-		0,as.outfit
+		{},as.outfit
 	)
 	
 	biosuit = ss.newContainerItem("Biosuit",{"armor","large"},
 		{
 			ss.newSlot("Oxy",{"canister","small"},true,true,10,as.suitstorage,true)
 			},
-		0,as.outfit
+		{},as.biosuit
 	)
 	
 	medoutfit = ss.newContainerItem("Medical Uniform",{"clothing","large"},
 		{
-			ss.newSlot("Belt",{"belt","large"},true,true,0,as.belt,true),
+			ss.newSlot("Belt",{"belt","canister","anysize"},true,true,10,as.belt,true),
 			ss.newSlot("Pocket",{"anytype","small"},true,false,0,as.pocket,true),
 			ss.newSlot("Pocket",{"anytype","small"},true,false,0,as.pocket,true),
-			ss.newSlot("PDA Clip",{"pda","card","small"},true,true,2,as.id,true),
-			ss.newSlot("ID Clip",{"pda","card","small"},true,true,2,as.id,true)
+			ss.newSlot("PDA Clip",{"pda","card","small"},true,true,1,as.id,true),
+			ss.newSlot("ID Clip",{"pda","card","small"},true,true,3,as.id,true)
 			},
-		0,as.outfit
+		{},as.medoutfit
 	)
 	
 	idcard = ss.newItem("Scientist ID Card",{"card","small"},as.card)
@@ -193,24 +197,33 @@ function love.load()
 	table.insert(inv.ground, ss.newItem("Medical Shoes",{"shoes","small"},as.medshoes))
 	table.insert(inv.ground, ss.newItem("Medbay Headset",{"earpiece","small"},as.earpiece))
 	table.insert(inv.ground, ss.newItem("First Aid",{"tool","large"},as.faid))
+	table.insert(inv.ground, ss.newItem("Revolver",{"gun","small"},as.revolver))
+	table.insert(inv.ground, ss.newItem("Bonesaw",{"medical","large"},as.bonesaw))
 	
 	medbelt = ss.newContainerItem("Medical Belt",{"belt","large"},
 		{
+			ss.newSlot("Pouch",{"medical","large"},true,true,5,as.pocket,true),
 			ss.newSlot("Pouch",{"medical","small"},true,true,0,as.pocket,true),
 			ss.newSlot("Pouch",{"medical","small"},true,true,0,as.pocket,true),
-			ss.newSlot("Pouch",{"medical","small"},true,true,0,as.pocket,true),
-			ss.newSlot("Pouch",{"medical","small"},true,true,0,as.pocket,true),
+			ss.newSlot("Pouch",{"medical","small"},true,true,0,as.pocket,true)
 			},
-		5,as.medbelt)
+		{},as.medbelt)
+		
+	holster = ss.newContainerItem("Gunbelt",{"belt","large"},
+		{
+			ss.newSlot("Holster",{"gun","small"},true,true,8,as.pocket,true),
+			ss.newSlot("Pouch",{"anytype","small"},true,false,0,as.pocket,true)
+			},
+		{},as.holster)
 	
 	medbelt:addItem(ss.newItem("Syringe",{"medical","small"},as.needle))
 	medbelt:addItem(ss.newItem("Syringe",{"medical","small"},as.needle))
-	medbelt:addItem(ss.newItem("Medpack",{"medical","small"},as.medpack))
 	medbelt:addItem(ss.newItem("Medpack",{"medical","small"},as.medpack))
 	
 	medisach = ss.newContainerItem("Medical Pack",{"backpack","large"},4,{"anytype","small"},as.medbackpack)
 		
 	table.insert(inv.ground, medbelt)
+	table.insert(inv.ground, holster)
 	table.insert(inv.ground, medoutfit)
 	table.insert(inv.ground, medisach)
 	table.insert(inv.ground, biosuit)
@@ -238,6 +251,7 @@ function contextSlots(inventory,num)
 	local context = inv.new("Context")
 	local allEmpty = inv.listEmpty(inventory)
 	local allFull = inv.listItemSlots(inventory)
+
 	for i,slot in spairs(allFull, function(t,a,b) return t[b].viewpriority < t[a].viewpriority end) do
 		if #context.slots < num and slot.visible and slot.contextual then
 			context:addSlot(slot)
@@ -245,13 +259,14 @@ function contextSlots(inventory,num)
 		end
 	end
 	if #context.slots < num and #allEmpty > 0 then
-		for i,slot in spairs(allEmpty, function(t,a,b) return t[b].viewpriority < t[a].viewpriority end) do
-			if #context.slots < num and slot.visible and slot.contextual then
+		for i,slot in spairs(allEmpty, function(t,a,b) return (t[b].viewpriority or 0) < (t[a].viewpriority or 0) end) do
+			if #context < num and slot.visible and slot.contextual then
 				context:addSlot(slot)
 				print("added slot to context")
 			end
 		end
 	end
+
 	return context
 end
 
@@ -304,6 +319,7 @@ function love.keypressed(key)
 	elseif SHIFT then
 		--SHIFT keypress
 	end	
+	context = contextSlots(player,4)
 end
 
 function moveMap(key)
@@ -399,7 +415,6 @@ function invKeypressed(key)
 	if key == '`' then
 		menulevel = 0
 		selected = player
-		context = contextSlots(player,4)
 	elseif key == 'x' then
 		swapHand()
 	elseif key == 'c' and menulevel == 0 and curHand.item and curHand.item.type == "container" then
@@ -422,6 +437,7 @@ function invKeypressed(key)
 	end
 	
 	
+		
 end
 
 function ALTKeypressed(key)
@@ -606,7 +622,8 @@ end
 
 function love.draw()
 	local bx,by = (lg.getWidth()/2)-(as.map:getWidth()/2),(lg.getHeight()/2)-(as.map:getHeight()/2)
-	lg.draw(as.map,bx-mapX,by-mapY)
+	lg.draw(as.map,bx-mapX,by-mapY,0,2,2)
+
 	
 	local ih = 72
 	local scale = ih/as.emptyslot:getWidth()

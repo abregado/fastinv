@@ -59,6 +59,7 @@ function fastinv.newSlot(name,stores,autostow,equiptarget,priority)
 	o.dropItem = fastinv.dropItem
 	o.takeItem = fastinv.takeItem
 	o.draw = fastinv.draw
+	--print(o.name.." priority "..tostring(o.viewpriority))
 	return o
 end
 
