@@ -1,6 +1,8 @@
 inv = require 'fastinv' 
 ss = require 'ssItem'
 intent = require 'intent'
+gs = require 'hump-master.gamestate'
+splash = require 'state_splash'
 
 local lg = love.graphics
 local font = love.graphics.newFont(30)
@@ -52,6 +54,10 @@ as.holster = lg.newImage('/assets/holster.png')
 as.revolver = lg.newImage('/assets/revolv.png')
 as.bonesaw = lg.newImage('/assets/bonesaw.png')
 
+img={}
+img.binary = lg.newImage('/assets/bgsplashlogo.png')
+
+game = {}
 
 ground = {}
 
@@ -156,6 +162,7 @@ local mapX = -736
 local mapY = 1088
 
 function love.load()
+	gs.registerEvents()
 	love.graphics.setDefaultFilter("nearest","nearest")
 	local modes = love.window.getFullscreenModes(2)
 	love.window.setMode(modes[#modes].width,modes[#modes].height,{fullscreen=true,fullscreentype="desktop"})
@@ -276,7 +283,14 @@ function love.load()
 	table.insert(inv.ground, medisach)
 	table.insert(inv.ground, biosuit)
 	
+    local bx,by = (lg.getWidth()/2)-(img.binary:getWidth()/2),(lg.getHeight()/2)-(img.binary:getHeight()/2)
+
 	
+	gs.switch(splash.new({
+        aa.new({splash.newQuadFlyIn(img.binary,bx,by,1)}),
+        aa.new({splash.newImageDisplay(img.binary,bx,by,2)}),
+        aa.new({splash.newQuadFlyOut(img.binary,bx,by,1)}),
+        }))
 end
 
 function freeHand()
@@ -350,7 +364,7 @@ function calcAccessable(obj)
 	return accessObj
 end
 
-function love.keypressed(key)
+function game.keypressed(key)
 	local ALT = love.keyboard.isDown('lalt')
 	local CTRL = love.keyboard.isDown('lctrl')
 	local SHIFT = love.keyboard.isDown('lshift')
@@ -670,7 +684,7 @@ function oldkeypressed(key)
 	
 end
 
-function love.draw()
+function game.draw()
 	local bx,by = (lg.getWidth()/2)-(as.map:getWidth()/2),(lg.getHeight()/2)-(as.map:getHeight()/2)
 	lg.draw(as.map,bx-mapX,by-mapY,0,2,2)
 
